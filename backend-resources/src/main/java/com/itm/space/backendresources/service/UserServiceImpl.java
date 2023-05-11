@@ -4,20 +4,18 @@ import com.itm.space.backendresources.api.request.UserRequest;
 import com.itm.space.backendresources.api.response.UserResponse;
 import com.itm.space.backendresources.exception.BackendResourcesException;
 import com.itm.space.backendresources.mapper.UserMapper;
+import com.itm.space.backendresources.mock.StubClass;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,18 +23,16 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    private final Keycloak keycloakClient;
     private final UserMapper userMapper;
+    private final StubClass stubClass;
 
-    @Value("${keycloak.realm}")
-    private String realm;
+
 
     public void createUser(UserRequest userRequest) {
         CredentialRepresentation password = preparePasswordRepresentation(userRequest.getPassword());
         UserRepresentation user = prepareUserRepresentation(userRequest, password);
         try {
-            Response response = keycloakClient.realm(realm).users().create(user);
-            String userId = CreatedResponseUtil.getCreatedId(response);
+            String userId = stubClass.createUser(user);
             log.info("Created UserId: {}", userId);
         } catch (WebApplicationException ex) {
             log.error("Exception on \"createUser\": ", ex);
@@ -50,10 +46,9 @@ public class UserServiceImpl implements UserService {
         List<RoleRepresentation> userRoles;
         List<GroupRepresentation> userGroups;
         try {
-            userRepresentation = keycloakClient.realm(realm).users().get(String.valueOf(id)).toRepresentation();
-            userRoles = keycloakClient.realm(realm)
-                    .users().get(String.valueOf(id)).roles().getAll().getRealmMappings();
-            userGroups = keycloakClient.realm(realm).users().get(String.valueOf(id)).groups();
+            userRepresentation = stubClass.getUserById(id);
+            userRoles  = stubClass.getUserRoles(id);
+            userGroups = stubClass.getUserGroups(id);
         } catch (RuntimeException ex) {
             log.error("Exception on \"getUserById\": ", ex);
             throw new BackendResourcesException(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
